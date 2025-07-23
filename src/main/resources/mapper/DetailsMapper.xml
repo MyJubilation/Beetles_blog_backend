@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.beetles.mapper.DetailsMapper">
+
+    <insert id="addDetails_1">
+        INSERT INTO article(title,
+        <if test='tags != null'>tags,</if>
+        coverImg, summary, type, visibility, content)
+        VALUES (#{title},
+        <if test='tags != null'>#{tags},</if>
+        #{coverImg}, #{summary}, #{type}, #{visibility}, #{content})
+    </insert>
+    <insert id="addDetails">
+        INSERT INTO article(id, title, cover_image, summary, type, visibility, content, user_id)
+        VALUES (#{id}, #{title}, #{coverImg}, #{summary}, #{type}, #{visibility}, #{content}, #{userId})
+    </insert>
+    <select id="getDetailsInfoList" resultType="java.util.Map">
+        SELECT a.id, a.title, a.cover_image AS coverImg, a.summary, a.type, a.visibility, u.nick_name AS author, u.avatar, a.user_id AS authorId
+        FROM article a join sys_user u ON a.user_id = u.id
+        WHERE visibility = 1 <if test='userId != null'>OR (visibility = 2 AND user_id = #{userId})</if>
+        ORDER BY id DESC
+        LIMIT #{pageSize} OFFSET #{start}
+    </select>
+    <select id="getDetailsContent" resultType="java.util.Map">
+        SELECT title, summary, content
+        FROM article
+        WHERE id = #{id}
+    </select>
+    <select id="getDetailsInfoListTotal" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM article
+        WHERE visibility = 1 <if test='userId != null'>OR (visibility = 2 AND user_id = #{userId})</if>
+    </select>
+</mapper>

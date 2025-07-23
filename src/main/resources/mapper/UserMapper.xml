@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.beetles.mapper.UserMapper">
+
+    <!--    <select id="getFriendList"  resultType="map">-->
+    <!--        SELECT-->
+    <!--            id, userName-->
+    <!--        FROM-->
+    <!--            user-->
+    <!--    </select>-->
+
+    <insert id="register">
+        INSERT INTO sys_user (
+        id, user_name, nick_name, password, status,
+        <if test='email != null'>email,</if>
+        <if test='phonenumber != null'>phonenumber,</if>
+        sex,
+        <if test='avatar != null'>avatar,</if>
+        user_type, create_time, update_time, del_flag
+        )
+        VALUES (
+        #{id}, #{userName}, #{nickName}, #{password}, #{status},
+        <if test='email != null'>#{email},</if>
+        <if test='phonenumber != null'>#{phonenumber},</if>
+        #{sex},
+        <if test='avatar != null'>#{avatar},</if>
+        #{userType}, #{createTime}, #{updateTime}, #{delFlag}
+        )
+    </insert>
+
+    <select id="getNickName" resultType="java.lang.Boolean">
+        SELECT COUNT(*)
+        FROM sys_user
+        WHERE nick_name = #{nickName}
+    </select>
+    <select id="getUserId" resultType="java.lang.Boolean">
+        SELECT COUNT(*)
+        FROM sys_user
+        WHERE id = #{id}
+    </select>
+    <select id="getUserName" resultType="java.lang.Boolean">
+        SELECT COUNT(*)
+        FROM sys_user
+        WHERE user_name = #{userName}
+    </select>
+</mapper>
