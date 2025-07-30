@@ -13,7 +13,7 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    @RequestMapping("/getUserId")
+    @RequestMapping("/getUserInfo")
     public Result<?> getUserId(@RequestParam("userName") String userName){
         return userService.getUserId(userName);
     }

@@ -89,8 +89,8 @@ public interface UserMapper extends BaseMapper<User> {
             "  user_id = #{userId} AND friend_id = #{friendId}")
     int selectFriendship(int userId, int friendId);
 
-    @Select("SELECT id FROM sys_user WHERE user_name = #{userName}")
-    int getUserIdByName(String userName);
+    @Select("SELECT id, nick_name, avatar FROM sys_user WHERE user_name = #{userName}")
+    Map<String, Object> getUserIdByName(String userName);
 
     @Select("SELECT user_type FROM sys_user WHERE id = #{userId}")
     int getUserTypeByUserId(String userId);

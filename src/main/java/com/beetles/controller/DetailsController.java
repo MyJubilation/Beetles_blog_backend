@@ -89,4 +89,67 @@ public class DetailsController {
 
         return new Result<>().success(200, "发送详情信息成功");
     }
+
+    /**
+     * 添加评论
+     * @param requestBody
+     * @return
+     */
+    @RequestMapping("/addComment")
+    public Result<?> addComment(@RequestBody Map<String, Object> requestBody) {
+        String detailsId = (String) requestBody.get("detailsId");
+        String userId = (String) requestBody.get("userId");
+        String comment = (String) requestBody.get("comment");
+
+        return detailsService.addComment(detailsId, userId, comment);
+    }
+
+    /**
+     * 获取评论列表
+     */
+    @RequestMapping("/getCommentsList")
+    public Result<?> getCommentsList(@RequestBody Map<String, Object> requestBody) {
+        String detailsId = (String) requestBody.get("detailsId");
+        return detailsService.getCommentsList(detailsId);
+    }
+
+    /**
+     * 获取弹幕数据
+     */
+    @RequestMapping("/getCommentsDanmakus")
+    public Result<?> getCommentsDanmakus(@RequestBody Map<String, Object> requestBody) {
+        String detailsId = (String) requestBody.get("detailsId");
+        return detailsService.getCommentsDanmakus(detailsId);
+    }
+
+    /**
+     * 切换点赞状态
+     */
+    @RequestMapping("/likeDetail")
+    public Result<?> likeDetail(@RequestBody Map<String, Object> requestBody) {
+        String detailsId = (String) requestBody.get("detailsId");
+        String userId = (String) requestBody.get("userId");
+        return detailsService.likeDetail(detailsId, userId);
+    }
+
+    /**
+     * 切换收藏状态
+     */
+    @RequestMapping("/starDetail")
+    public Result<?> starDetail(@RequestBody Map<String, Object> requestBody) {
+        String detailsId = (String) requestBody.get("detailsId");
+        String userId = (String) requestBody.get("userId");
+        return detailsService.starDetail(detailsId, userId);
+    }
+
+    /**
+     * 获取当前用户是否点赞和收藏
+     */
+    @RequestMapping("/checkIslikeANDIsStar")
+    public Result<?> checkIslikeANDIsStar(@RequestBody Map<String, Object> requestBody) {
+        String detailsId = (String) requestBody.get("detailsId");
+        String userId = (String) requestBody.get("userId");
+        return detailsService.checkIslikeANDIsStar(detailsId, userId);
+    }
+
 }

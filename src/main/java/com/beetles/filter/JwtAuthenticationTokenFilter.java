@@ -31,6 +31,8 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
         // 如果是 /login 请求，直接放行
         if ("/login".equals(requestURI) ||
                 requestURI.equals("/getDetailsInfoList") ||
+                requestURI.equals("/getCommentsList") ||
+                requestURI.equals("/getCommentsDanmakus") ||
                 requestURI.equals("/register") ||
                 requestURI.equals("/getDetailsContent") ||
                 requestURI.equals("/webSocket")) {

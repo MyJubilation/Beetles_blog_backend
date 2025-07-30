@@ -14,21 +14,78 @@
         INSERT INTO article(id, title, cover_image, summary, type, visibility, content, user_id)
         VALUES (#{id}, #{title}, #{coverImg}, #{summary}, #{type}, #{visibility}, #{content}, #{userId})
     </insert>
+    <insert id="addComment">
+        INSERT INTO comment(id, article_id, content, user_id, status)
+        VALUES (#{id}, #{detailsId}, #{comment}, #{userId}, #{status})
+    </insert>
+    <insert id="addLikeDetail">
+        INSERT INTO article_likes(article_id, user_id, id)
+        VALUES (#{detailsId}, #{userId}, #{id})
+    </insert>
+    <insert id="addStarDetail">
+        INSERT INTO article_stars(article_id, user_id, id)
+        VALUES (#{detailsId}, #{userId}, #{id})
+    </insert>
+    <update id="changeLikeInArticle">
+        UPDATE article
+        SET like_count = like_count + #{i}
+        WHERE id = #{detailsId}
+    </update>
+    <update id="changeStarInArticle">
+        UPDATE article
+        SET star_count = star_count + #{i}
+        WHERE id = #{detailsId}
+    </update>
+    <delete id="deleteLikeDetail">
+        DELETE FROM article_likes
+        WHERE article_id = #{detailsId} AND user_id = #{userId}
+    </delete>
+    <delete id="deleteStarDetail">
+        DELETE FROM article_stars
+        WHERE article_id = #{detailsId} AND user_id = #{userId}
+    </delete>
     <select id="getDetailsInfoList" resultType="java.util.Map">
-        SELECT a.id, a.title, a.cover_image AS coverImg, a.summary, a.type, a.visibility, u.nick_name AS author, u.avatar, a.user_id AS authorId
+        SELECT a.id, a.title, a.cover_image AS coverImg, a.summary, a.type, a.visibility, u.nick_name AS author, u.avatar,
+               a.user_id AS authorId, a.view_count AS views, a.like_count AS likes, a.star_count AS stars, a.create_time AS createTime, a.update_time AS updateTime
         FROM article a join sys_user u ON a.user_id = u.id
         WHERE visibility = 1 <if test='userId != null'>OR (visibility = 2 AND user_id = #{userId})</if>
         ORDER BY id DESC
         LIMIT #{pageSize} OFFSET #{start}
     </select>
     <select id="getDetailsContent" resultType="java.util.Map">
-        SELECT title, summary, content
-        FROM article
-        WHERE id = #{id}
+        SELECT a.title, a.summary, a.content, a.view_count, a.like_count AS likes, a.star_count AS stars,
+                DATE_FORMAT(a.create_time, '%Y-%m-%d %H:%i:%s') AS createTime,
+                DATE_FORMAT(a.update_time, '%Y-%m-%d %H:%i:%s') AS updateTime,
+                u.nick_name AS author, u.avatar
+        FROM article a join sys_user u ON a.user_id = u.id
+        WHERE a.id = #{id}
     </select>
     <select id="getDetailsInfoListTotal" resultType="java.lang.Integer">
         SELECT COUNT(*)
         FROM article
         WHERE visibility = 1 <if test='userId != null'>OR (visibility = 2 AND user_id = #{userId})</if>
+    </select>
+    <select id="getCommentsList" resultType="java.util.Map">
+        SELECT c.id, c.content AS comment, DATE_FORMAT(c.create_time, '%Y-%m-%d %H:%i:%s') AS createTime, u.nick_name AS author, u.avatar, c.user_id AS authorId
+        FROM comment c join sys_user u ON c.user_id = u.id
+        WHERE c.article_id = #{detailsId} AND c.status = 1
+        ORDER BY c.create_time ASC
+    </select>
+    <select id="getCommentsDanmakus" resultType="java.lang.String">
+        SELECT content
+        FROM comment
+        WHERE article_id = #{detailsId} AND status = 1
+        ORDER BY RAND()
+        LIMIT 10
+    </select>
+    <select id="selectLikeDetail" resultType="java.lang.Integer">
+        SELECT count(*)
+        FROM article_likes
+        WHERE article_id = #{detailsId} AND user_id = #{userId}
+    </select>
+    <select id="selectStarDetail" resultType="java.lang.Integer">
+        SELECT count(*)
+        FROM article_stars
+        WHERE article_id = #{detailsId} AND user_id = #{userId}
     </select>
 </mapper>
