@@ -11,8 +11,8 @@
         #{coverImg}, #{summary}, #{type}, #{visibility}, #{content})
     </insert>
     <insert id="addDetails">
-        INSERT INTO article(id, title, cover_image, summary, type, visibility, content, user_id)
-        VALUES (#{id}, #{title}, #{coverImg}, #{summary}, #{type}, #{visibility}, #{content}, #{userId})
+        INSERT INTO article(id, title, cover_image, tags, summary, type, visibility, content, user_id)
+        VALUES (#{id}, #{title}, #{coverImg}, #{tags}, #{summary}, #{type}, #{visibility}, #{content}, #{userId})
     </insert>
     <insert id="addComment">
         INSERT INTO comment(id, article_id, content, user_id, status)
@@ -26,6 +26,11 @@
         INSERT INTO article_stars(article_id, user_id, id)
         VALUES (#{detailsId}, #{userId}, #{id})
     </insert>
+    <update id="addDetailsView">
+        UPDATE article
+        SET view_count = view_count + 1
+        WHERE id = #{id}
+    </update>
     <update id="changeLikeInArticle">
         UPDATE article
         SET like_count = like_count + #{i}
@@ -47,13 +52,16 @@
     <select id="getDetailsInfoList" resultType="java.util.Map">
         SELECT a.id, a.title, a.cover_image AS coverImg, a.summary, a.type, a.visibility, u.nick_name AS author, u.avatar,
                a.user_id AS authorId, a.view_count AS views, a.like_count AS likes, a.star_count AS stars, a.create_time AS createTime, a.update_time AS updateTime
-        FROM article a join sys_user u ON a.user_id = u.id
-        WHERE visibility = 1 <if test='userId != null'>OR (visibility = 2 AND user_id = #{userId})</if>
-        ORDER BY id DESC
+        FROM article a join sys_user u ON a.user_id = u.id <if test="type != null">JOIN tag t</if>
+        WHERE (a.visibility = 1
+            <if test='userId != null'>OR (a.visibility = 2 AND a.user_id = #{userId})</if>)
+            <if test='type != null'>AND JSON_CONTAINS_PATH(a.tags, 'one', CONCAT('$[*]."', t.name , '"')) AND t.name = #{type}</if>
+
+        ORDER BY a.id DESC
         LIMIT #{pageSize} OFFSET #{start}
     </select>
     <select id="getDetailsContent" resultType="java.util.Map">
-        SELECT a.title, a.summary, a.content, a.view_count, a.like_count AS likes, a.star_count AS stars,
+        SELECT a.id,a.title, a.summary, a.content, a.view_count, a.like_count AS likes, a.star_count AS stars,
                 DATE_FORMAT(a.create_time, '%Y-%m-%d %H:%i:%s') AS createTime,
                 DATE_FORMAT(a.update_time, '%Y-%m-%d %H:%i:%s') AS updateTime,
                 u.nick_name AS author, u.avatar
@@ -62,8 +70,11 @@
     </select>
     <select id="getDetailsInfoListTotal" resultType="java.lang.Integer">
         SELECT COUNT(*)
-        FROM article
-        WHERE visibility = 1 <if test='userId != null'>OR (visibility = 2 AND user_id = #{userId})</if>
+        FROM article a <if test="type != null">JOIN tag t</if>
+        WHERE (a.visibility = 1
+            <if test='userId != null'>OR (a.visibility = 2 AND a.user_id = #{userId})</if>)
+            <if test='type != null'>AND JSON_CONTAINS_PATH(a.tags, 'one', CONCAT('$[*]."', t.name , '"'))
+                AND t.name = #{type}</if>
     </select>
     <select id="getCommentsList" resultType="java.util.Map">
         SELECT c.id, c.content AS comment, DATE_FORMAT(c.create_time, '%Y-%m-%d %H:%i:%s') AS createTime, u.nick_name AS author, u.avatar, c.user_id AS authorId
@@ -87,5 +98,22 @@
         SELECT count(*)
         FROM article_stars
         WHERE article_id = #{detailsId} AND user_id = #{userId}
+    </select>
+    <select id="getTagsFromTag" resultType="java.util.Map">
+        SELECT title as tag, name as content, id
+        FROM tag
+    </select>
+    <select id="getTagsListInfo" resultType="java.util.Map">
+        SELECT content
+        FROM tag_content
+        WHERE type_id = #{id}
+    </select>
+    <select id="getTagsFromTagContent" resultType="java.util.Map">
+        SELECT c.content as content, t.name as tag, c.id
+        FROM tag_content c JOIN tag t ON c.type_id = t.id
+    </select>
+    <select id="getTags" resultType="java.util.Map">
+        SELECT name,title,id
+        FROM tag
     </select>
 </mapper>

@@ -2,6 +2,7 @@ package com.beetles.controller;
 
 import com.beetles.DTO.Details;
 import com.beetles.DTO.Result;
+import com.beetles.service.DetailsHistoryService;
 import com.beetles.service.DetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -19,6 +20,8 @@ public class DetailsController {
 
     @Autowired
     private DetailsService detailsService;
+    @Autowired
+    private DetailsHistoryService detailsHistoryService;
 
     /**
      * 在主页面获取文章信息列表
@@ -30,6 +33,7 @@ public class DetailsController {
         int currentPage = (int) data.get("currentPage");
         int pageSize = (int) data.get("pageSize");
         String userId = (String) data.get("userId");
+        String type = (String) data.get("type");
 
         // ------------------------------------ 暂时没有弄懂原理，也没有用处------------------------------------------
         // 获取登录状态
@@ -56,7 +60,15 @@ public class DetailsController {
         }
         // ------------------------------------ 暂时没有弄懂原理，也没有用处------------------------------------------
 
-        return detailsService.getDetailsInfoList(currentPage, pageSize, userId);
+        return detailsService.getDetailsInfoList(currentPage, pageSize, userId, type);
+    }
+
+    /**
+     * 获取顶部标签
+     */
+    @RequestMapping("/getTags")
+    public Result<?> getTags() {
+        return detailsService.getTags();
     }
 
     /**
@@ -75,7 +87,8 @@ public class DetailsController {
         Details details = new Details();
         details.setId(String.valueOf(UUID.randomUUID()));
         details.setTitle((String) requestBody.get("title"));
-        details.setTags((List<String>) requestBody.get("tags"));
+//        details.setTags((List<String>) requestBody.get("tags"));
+        List<String> tags = (List<String>) requestBody.get("tags");
         details.setCoverImg((String) requestBody.get("coverImg"));
         details.setSummary((String) requestBody.get("summary"));
         details.setType((String) requestBody.get("type"));
@@ -83,7 +96,7 @@ public class DetailsController {
         details.setContent((String) requestBody.get("content"));
         details.setUserId((String) requestBody.get("userId"));
 
-        if (detailsService.addDetails(details) != 0) {
+        if (detailsService.addDetails(details, tags) != 0) {
             return new Result<>().success(200, "发送详情信息成功");
         }
 
@@ -150,6 +163,61 @@ public class DetailsController {
         String detailsId = (String) requestBody.get("detailsId");
         String userId = (String) requestBody.get("userId");
         return detailsService.checkIslikeANDIsStar(detailsId, userId);
+    }
+
+    /**
+     * 添加历史记录 TODO
+     */
+    @RequestMapping("/addHistory")
+    public Result<?> addHistory(@RequestBody Map<String, Object> requestBody) {
+        String userId = (String) requestBody.get("userId");
+        String articleId = (String) requestBody.get("articleId");
+        String type = (String) requestBody.get("type");
+        return detailsHistoryService.addToHistory(userId, articleId, type);
+    }
+    /**
+     * 获取历史记录
+     * TODO 最多每人20条数据,去掉Page个size
+     */
+    @RequestMapping("/getHistory")
+    public Result<?> getHistory(@RequestBody Map<String, Object> requestBody) {
+        String userId = (String) requestBody.get("userId");
+        String type = (String) requestBody.get("type");
+        return detailsHistoryService.getHistory(userId, type);
+    }
+    /**
+     * 删除历史记录
+     */
+    @RequestMapping("/removeHistoryItem")
+    public Result<?> removeHistoryItem(@RequestBody Map<String, Object> requestBody) {
+        String userId = (String) requestBody.get("userId");
+        String articleId = (String) requestBody.get("articleId");
+        return detailsHistoryService.removeHistoryItem(userId, articleId);
+    }
+    /**
+     * 清空历史记录
+     */
+    @RequestMapping("/clearHistory")
+    public Result<?> clearHistory(@RequestBody Map<String, Object> requestBody) {
+        String userId = (String) requestBody.get("userId");
+        return detailsHistoryService.clearHistory(userId);
+    }
+
+    /**
+     * 创作界面获取标签类型列表
+     * return: 标签类别，子标签列表
+     */
+    @RequestMapping("/getStatusList")
+    public Result<?> getStatusList() {
+        return detailsService.getStatusList();
+    }
+
+    /**
+     * 获取底部标签数据
+     */
+    @RequestMapping("/getTagList")
+    public Result<?> getTagList() {
+        return detailsService.getTagsList();
     }
 
 }

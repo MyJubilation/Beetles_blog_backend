@@ -54,7 +54,12 @@ public class SecurityConfig {
                     // 允许匿名访问登录接口
                     .requestMatchers("/login").anonymous()
                     // 允许匿名访问接口
-                    .requestMatchers("/getDetailsInfoList").permitAll()
+                    // 主页相关api
+                    .requestMatchers("/getDetailsInfoList","/getTags").permitAll()
+                    // 浏览历史相关api
+//                    .requestMatchers("/getHistory").permitAll()
+                    // 创作相关api
+                    .requestMatchers("/getStatusList").permitAll()
                     // 评论功能
                     .requestMatchers( "/getCommentsList", "/getCommentsDanmakus").permitAll()
                     .requestMatchers("/register",  "/getDetailsContent", "/webSocket").permitAll()

@@ -12,11 +12,11 @@ public interface DetailsMapper {
 //            "VALUES (#{details.getTitle()})")
     int addDetails(Details details);
 
-    List<Map<String, Object>> getDetailsInfoList(int start, int pageSize, String userId);
+    List<Map<String, Object>> getDetailsInfoList(int start, int pageSize, String userId, String type);
 
     Map<String, Object> getDetailsContent(String id);
 
-    int getDetailsInfoListTotal(String userId);
+    int getDetailsInfoListTotal(String userId, String type);
 
     int addComment(String id, String detailsId, String userId, String comment, int status);
 
@@ -39,4 +39,14 @@ public interface DetailsMapper {
     int changeLikeInArticle(String detailsId, int i);
 
     int changeStarInArticle(String detailsId, int i);
+
+    int addDetailsView(String id);
+
+    List<Map<String, Object>> getTagsFromTag();
+
+    List<Map<String, Object>> getTagsListInfo(String id);
+
+    List<Map<String, Object>> getTagsFromTagContent();
+
+    List<Map<String, Object>> getTags();
 }

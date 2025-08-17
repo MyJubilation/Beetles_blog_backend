@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class DetailsServiceImpl implements DetailsService {
@@ -16,15 +17,20 @@ public class DetailsServiceImpl implements DetailsService {
     private DetailsMapper detailsMapper;
 
     @Override
-    public Result<?> getDetailsInfoList(int currentPage, int pageSize, String userId) {
+    public Result<?> getDetailsInfoList(int currentPage, int pageSize, String userId, String type) {
         // 处理数据
         int start = (currentPage - 1) * pageSize;
         Map<String, Object> result = new HashMap<>();
+        if(Objects.equals(type, "all")){
+            type = null;
+        }else {
+//            type = '"' + type + '"';
+        }
         // 查询当前页数据
-        List<Map<String,Object>> listInfo = detailsMapper.getDetailsInfoList(start, pageSize, userId);
+        List<Map<String,Object>> listInfo = detailsMapper.getDetailsInfoList(start, pageSize, userId, type);
         result.put("listInfo", listInfo);
         // 查询总条数
-        int total = detailsMapper.getDetailsInfoListTotal(userId);
+        int total = detailsMapper.getDetailsInfoListTotal(userId, type);
         result.put("total", total);
         if(result != null){
             return new Result<>().put(result).success(200, "获取详情信息列表成功");
@@ -34,7 +40,18 @@ public class DetailsServiceImpl implements DetailsService {
     }
 
     @Override
+    public Result<?> getTags() {
+        List<Map<String, Object>> tags = detailsMapper.getTags();
+        if (tags != null){
+            return new Result<>().success(200, "获取标签成功").put(tags);
+        }else {
+            return new Result<>().error("获取标签失败");
+        }
+    }
+
+    @Override
     public Result<?> getDetailsContent(String id) {
+        int result = detailsMapper.addDetailsView(id);
         Map<String, Object> map = detailsMapper.getDetailsContent(id);
         if (map == null) {
             return new Result<>().error( "获取文章内容失败");
@@ -44,7 +61,57 @@ public class DetailsServiceImpl implements DetailsService {
     }
 
     @Override
-    public int addDetails(Details details) {
+    public int addDetails(Details details,List<String> tagsParams) {
+        // 处理数据
+        // 处理tags
+        // params:["python:python","Java:java"]
+        List<Map<String, Object>> tags = new ArrayList<>();
+        List<String> tagsRaw = tagsParams;
+        for (String params : tagsRaw){
+            String[] parts = params.split(":", 2); // 限制分割次数为2
+
+            if (parts.length == 2) {
+                String tag = parts[0];  // "Java"
+                String content = parts[1];  // "Springboot"
+                // 判断当前tag是否存在，并获取对应Map
+                Map<String, Object> javaMap = tags.stream()
+                        .filter(map -> tag.equals(map.get("tag")))
+                        .findFirst()
+                        .orElse(null);
+                if (javaMap != null) {
+                    // 已经存在当前tag的Map
+                    String contentList = (String) javaMap.get("content");
+                    contentList = contentList.substring(0, contentList.length() - 2);
+                    contentList += ",\""+content+"\"]}";
+                    javaMap.put("content", contentList);
+                } else {
+                    // 不存在当前tag的Map，新建
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("tag", "{\""+tag+"\"");
+                    map.put("content", "[\"" +content+"\"]}");
+                    tags.add(map);
+                }
+            }
+        }
+
+        List<String> currentTags = new ArrayList<>();
+        for (Map<String, Object> map : tags){
+            Map<String, Object> mapTemp = new HashMap<>();
+            mapTemp.put((String) map.get("tag"), map.get("content"));
+            // mapTemp:{Python=["python","django","tornado","scikit-learn"]}
+
+            // 将Map转换为String，并将=替换为:
+            String result = mapTemp.entrySet()
+                    .stream()
+                    .map(entry -> entry.getKey() + ":" + entry.getValue())
+                    .collect(Collectors.joining(", "));
+            currentTags.add(result);
+        }
+        // currentTags:[{Python=["python","django","tornado","scikit-learn"]}, {Java=["java","maven"]}]
+        String currentTagsString = currentTags.toString();
+//        System.out.println(currentTagsString);
+        details.setTags(currentTagsString);
+
         return detailsMapper.addDetails(details);
     }
 
@@ -166,6 +233,52 @@ public class DetailsServiceImpl implements DetailsService {
             return new Result<>().success(200, "查询是否点赞和收藏成功").put(result);
         }else {
             return new Result<>().error("查询是否点赞和收藏失败");
+        }
+    }
+
+    @Override
+    public Result<?> getStatusList() {
+        // 返回类型：[{"content": "Python", "tag": "Python", "value": [{"content": "python", "name": "python"},{...}]}, ]
+        // 获取主标签列表
+        List<Map<String, Object>> typeListTag = detailsMapper.getTagsFromTag();
+        // 获取子标签列表
+        List<Map<String, Object>> typeListContent = detailsMapper.getTagsFromTagContent();
+        // 合并
+        List<Map<String, Object> > typeList = new ArrayList<>();
+        typeList.addAll(typeListTag);
+        typeList.addAll(typeListContent);
+
+        // 查询标签类别列表
+        // 删除全部标签
+        typeList.removeIf(map -> "all".equals(map.get("content")));
+
+        // 返回
+        if(typeList != null){
+            return new Result<>().success(200, "获取标签列表成功").put(typeList);
+        }else {
+            return new Result<>().error("获取标签列表失败");
+        }
+    }
+
+    @Override
+    public Result<?> getTagsList() {
+        // 获取主标签列表
+        List<Map<String, Object>> typeList = detailsMapper.getTags();
+        // 删除全部标签
+        typeList.removeIf(map -> "all".equals(map.get("name")));
+        // TODO 添加推荐标签
+        // 查询子标签
+        for (Map<String, Object> type : typeList){
+            String id = (String) type.get("id");
+            String name = (String) type.get("name");
+            List<Map<String, Object>> tagList = detailsMapper.getTagsListInfo(id);
+            type.put("content", tagList);
+        }
+        // 返回
+        if(typeList != null){
+            return new Result<>().success(200, "获取标签列表成功").put(typeList);
+        }else {
+            return new Result<>().error("获取标签列表失败");
         }
     }
 

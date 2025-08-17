@@ -3,10 +3,12 @@ package com.beetles.service;
 import com.beetles.DTO.Details;
 import com.beetles.DTO.Result;
 
-public interface DetailsService {
-    int addDetails(Details details);
+import java.util.List;
 
-    Result<?> getDetailsInfoList(int currentPage, int pageSize, String userId);
+public interface DetailsService {
+    int addDetails(Details details, List<String> tags);
+
+    Result<?> getDetailsInfoList(int currentPage, int pageSize, String userId, String type);
 
     Result<?> getDetailsContent(String id);
 
@@ -21,4 +23,10 @@ public interface DetailsService {
     Result<?> checkIslikeANDIsStar(String detailsId, String userId);
 
     Result<?> starDetail(String detailsId, String userId);
+
+    Result<?> getTags();
+
+    Result<?> getStatusList();
+
+    Result<?> getTagsList();
 }

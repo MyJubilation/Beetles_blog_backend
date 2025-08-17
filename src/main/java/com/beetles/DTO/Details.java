@@ -4,12 +4,13 @@ import lombok.Data;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 @Data
 public class Details {
     private String id;
     private String title; // 标题
-    private List<String> tags; // 标签
+    private String tags; // 标签
     private String coverImg; // 封面图片
     private String summary; // 摘要
     private String type; // 类型 (1:原创; 2:转载)
