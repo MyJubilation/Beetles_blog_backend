@@ -84,14 +84,26 @@ public interface UserMapper extends BaseMapper<User> {
     @Select("SELECT \n" +
             " COUNT(*)\n" +
             "FROM\n" +
-            "  friend_list_role\n" +
+            "  sys_user_follows\n" +
             "WHERE\n" +
-            "  user_id = #{userId} AND friend_id = #{friendId}")
-    int selectFriendship(int userId, int friendId);
+            "  user_id = #{userId} AND follower_id = #{followerId}")
+    int selectFriendship(String userId, String followerId);
 
     @Select("SELECT id, nick_name, avatar FROM sys_user WHERE user_name = #{userName}")
     Map<String, Object> getUserIdByName(String userName);
 
     @Select("SELECT user_type FROM sys_user WHERE id = #{userId}")
     int getUserTypeByUserId(String userId);
+
+    List<Map<String, Object>> getUserDetailsInfoList(String authorId, String userId);
+
+    Map<String, Object> getUserShortInfo(String userId);
+
+    int addUserFollows(String id, String userId, String followerId);
+
+    int removeUserFollows(String userId, String followerId);
+
+    int changeUserInfo(String type, String value, String userId);
+
+    Map<String, Object> getUserInfoById(String userId);
 }

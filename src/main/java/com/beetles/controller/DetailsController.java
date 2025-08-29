@@ -8,10 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 
@@ -152,7 +150,8 @@ public class DetailsController {
     public Result<?> starDetail(@RequestBody Map<String, Object> requestBody) {
         String detailsId = (String) requestBody.get("detailsId");
         String userId = (String) requestBody.get("userId");
-        return detailsService.starDetail(detailsId, userId);
+        String folderId = (String) requestBody.get("folderId");
+        return detailsService.starDetail(detailsId, userId, folderId);
     }
 
     /**
@@ -166,7 +165,7 @@ public class DetailsController {
     }
 
     /**
-     * 添加历史记录 TODO
+     * 添加历史记录
      */
     @RequestMapping("/addHistory")
     public Result<?> addHistory(@RequestBody Map<String, Object> requestBody) {
@@ -177,7 +176,6 @@ public class DetailsController {
     }
     /**
      * 获取历史记录
-     * TODO 最多每人20条数据,去掉Page个size
      */
     @RequestMapping("/getHistory")
     public Result<?> getHistory(@RequestBody Map<String, Object> requestBody) {
@@ -218,6 +216,101 @@ public class DetailsController {
     @RequestMapping("/getTagList")
     public Result<?> getTagList() {
         return detailsService.getTagsList();
+    }
+
+    /**
+     * 根据搜索框输入内容获取文章列表
+     */
+    @RequestMapping("/selectDetailsList")
+    public Result<?> selectDetailsList(@RequestBody Map<String, Object> requestBody) {
+        int currentPage = (int) requestBody.get("currentPage");
+        int pageSize = (int) requestBody.get("pageSize");
+        String userId = (String) requestBody.get("userId");
+        String input = (String) requestBody.get("input");
+        String timeNaviType = (String) requestBody.get("timeNaviType");
+        return detailsService.selectDetailsList(currentPage, pageSize, userId, input, timeNaviType);
+    }
+
+    /**
+     * 根据用户id获取关注的用户文章列表
+     */
+    @RequestMapping("/getFollowedDetailsInfoList")
+    public Result<?> getFollowedDetailsInfoList(@RequestBody Map<String, Object> data) {
+        int currentPageNum = (int) data.get("currentPageNum");
+        String userId = (String) data.get("userId");
+        return detailsService.getFollowedDetailsInfoList(currentPageNum, userId);
+    }
+
+    /**
+     * 上传图片
+     */
+    @PostMapping("/imgUpload")
+    public String singleFileUpload(@RequestParam("file") MultipartFile file) {
+        try {
+            if (file.isEmpty()) {
+                return "文件为空，请重新上传";
+            }
+
+            System.out.println(file);
+            return "OK";
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "OK";
+    }
+
+    /**
+     * 收藏夹内容获取
+     */
+    @RequestMapping("/getStarFolderContents")
+    public Result<?> getStarFolderContents(@RequestBody Map<String, Object> requestBody) {
+        String userId = (String) requestBody.get("userId");
+        String folderId = (String) requestBody.get("folderId");
+        int pageSize = (int) requestBody.get("pageSize");
+        int currentPage = (int) requestBody.get("currentPage");
+        return detailsService.getStarFolderContents(userId, folderId, pageSize, currentPage);
+    }
+
+    /**
+     * 收藏夹列表获取
+     */
+    @RequestMapping("/getStarFolderList")
+    public Result<?> getStarFolderList(@RequestBody Map<String, Object> requestBody) {
+        String userId = (String) requestBody.get("userId");
+        return detailsService.getStarFolderList(userId);
+    }
+
+    /**
+     * 修改收藏夹信息
+     */
+    @RequestMapping("/changeStarFolderInfo")
+    public Result<?> changeStarFolderInfo(@RequestBody Map<String, Object> requestBody) {
+        String type = (String) requestBody.get("type");
+        String folderId = (String) requestBody.get("id");
+        String value = (String) requestBody.get("value");
+        return detailsService.changeStarFolderInfo(folderId, type, value);
+    }
+
+    /**
+     * 根据文章id和用户id获取收藏夹id
+     */
+    @RequestMapping("/getFolderId")
+    public Result<?> getFolderId(@RequestBody Map<String, Object> requestBody) {
+        String userId = (String) requestBody.get("userId");
+        String detailsId = (String) requestBody.get("detailsId");
+        return detailsService.getFolderId(userId, detailsId);
+    }
+
+    /**
+     * 新增收藏夹
+     */
+    @RequestMapping("/addNewStarFolder")
+    public Result<?> addNewStarFolder(@RequestBody Map<String, Object> requestBody) {
+        String userId = (String) requestBody.get("userId");
+        String folderName = (String) requestBody.get("folderName");
+        String summary = (String) requestBody.get("summary");
+        int isVisible = requestBody.get("isVisible") == "1" ? 0 : 1;
+        return detailsService.addNewStarFolder(userId, folderName, summary, isVisible);
     }
 
 }

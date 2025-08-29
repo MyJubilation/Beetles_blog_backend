@@ -195,21 +195,31 @@ public class DetailsServiceImpl implements DetailsService {
     }
 
     @Override
-    public Result<?> starDetail(String detailsId, String userId) {
+    public Result<?> starDetail(String detailsId, String userId, String folderId) {
         // 查询是否已经收藏
-        int count = detailsMapper.selectStarDetail(detailsId, userId);
+        String detailIdSelected = detailsMapper.selectStarDetail(detailsId, userId);
         int result = 0;
         int status = 0;
-        if(count == 1){
-            // 已经收藏，进行取消收藏功能
-            result = detailsMapper.deleteStarDetail(detailsId, userId);
-            // 在article表中更新收藏记录
-            result = detailsMapper.changeStarInArticle(detailsId, -1);
-            status = -1;
+        String msg = "收藏失败";
+        if(detailIdSelected != null){
+            if(detailIdSelected.equals(folderId)) {
+                // 选择的收藏夹和数据库已经收藏的收藏夹相同，进行取消收藏操作
+                // 已经收藏，进行取消收藏功能
+                result = detailsMapper.deleteStarDetail(detailsId, userId);
+                // 在article表中更新收藏记录
+                result = detailsMapper.changeStarInArticle(detailsId, -1);
+                status = -1;
+            }else {
+                // 已经有收藏的情况下点击其他收藏夹，返回错误提示
+                msg = "已经收藏在其他文件夹中，请重试";
+            }
         }else {
             // 未收藏，进行收藏功能
             String id = UUID.randomUUID().toString();
-            result = detailsMapper.addStarDetail(detailsId, userId, id);
+            if(folderId == null){
+                folderId = detailsMapper.selectFolderIdByUserId(userId);
+            }
+            result = detailsMapper.addStarDetail(detailsId, userId, id, folderId);
             // 在article表中更新收藏记录
             result = detailsMapper.changeStarInArticle(detailsId, 1);
             status = 1;
@@ -217,7 +227,7 @@ public class DetailsServiceImpl implements DetailsService {
         if(result == 1){
             return new Result<>().success(200, "收藏成功").put(status);
         }else {
-            return new Result<>().error("收藏失败");
+            return new Result<>().error(msg);
         }
     }
 
@@ -225,7 +235,7 @@ public class DetailsServiceImpl implements DetailsService {
     public Result<?> checkIslikeANDIsStar(String detailsId, String userId) {
         // 查询是否已经点赞和收藏
         int isLike = detailsMapper.selectLikeDetail(detailsId, userId);
-        int isStar = detailsMapper.selectStarDetail(detailsId, userId);
+        int isStar = detailsMapper.selectStarDetail(detailsId, userId) == null ? 0 : 1;
         Map<String, Object> result = new HashMap<>();
         result.put("isLike", isLike);
         result.put("isStar", isStar);
@@ -282,4 +292,92 @@ public class DetailsServiceImpl implements DetailsService {
         }
     }
 
+    @Override
+    public Result<?> selectDetailsList(int currentPage, int pageSize, String userId, String input, String timeNaviType) {
+        int start = (currentPage - 1) * pageSize;
+        List<Map<String, Object>> result = detailsMapper.selectDetailsList(start, pageSize, userId, input, timeNaviType);
+        Map<String, Object> map = new HashMap<>();
+        map.put("content", result);
+        map.put("total", detailsMapper.selectDetailsListTotal(userId, input));
+        if (result != null){
+            return new Result<>().success(200, "获取文章列表成功").put(map);
+        }else {
+            return new Result<>().error("获取文章列表失败");
+        }
+    }
+
+    @Override
+    public Result<?> getFollowedDetailsInfoList(int currentPageNum, String userId) {
+        int EVERY_SELECT_PAGE_SIZE = 8;
+
+//        currentPageNum += EVERY_SELECT_PAGE_SIZE;
+
+        List<Map<String, Object>> result = detailsMapper.getFollowedDetailsInfoList(currentPageNum, userId);
+        if(result != null){
+            return new Result<>().success(200, "获取关注文章列表成功").put(result);
+        }else {
+            return new Result<>().error("获取关注文章列表失败");
+        }
+    }
+
+    @Override
+    public Result<?> getStarFolderContents(String userId, String folderId, int pageSize, int currentPage) {
+        int start = (currentPage - 1) * pageSize;
+        // 获取收藏夹内容列表
+        List<Map<String, Object>> result = detailsMapper.getStarFolderContents(userId, folderId, pageSize, start);
+        Map<String, Object> map = new HashMap<>();
+        map.put("list", result);
+//        List<Map<String, Object>> newResult = new ArrayList<>();
+//        newResult.add(map);
+        // 获取收藏夹本身信息
+        Map<String, Object> folderInfo = detailsMapper.getStarFolderInfo(folderId);
+//        newResult.add(folderInfo);
+        map.put("folderInfo", folderInfo);
+        if(result != null){
+            return new Result<>().success(200, "获取收藏夹内容成功").put(map);
+        }else {
+            return new Result<>().error("获取收藏夹内容失败");
+        }
+    }
+
+    @Override
+    public Result<?> getStarFolderList(String userId) {
+        List<Map<String, Object>> result = detailsMapper.getStarFolderList(userId);
+        if(result != null){
+            return new Result<>().success(200, "获取收藏夹列表成功").put(result);
+        }else {
+            return new Result<>().error("获取收藏夹列表失败");
+        }
+    }
+
+    @Override
+    public Result<?> changeStarFolderInfo(String folderId, String type, String value) {
+        int result = detailsMapper.changeStarFolderInfo(folderId, type, value);
+        if(result != 0){
+            return new Result<>().success(200, "修改收藏夹信息成功");
+        }else {
+            return new Result<>().error("修改收藏夹信息失败");
+        }
+    }
+
+    @Override
+    public Result<?> getFolderId(String userId, String detailsId) {
+        String result = detailsMapper.getFolderId(userId, detailsId);
+        if(result != null){
+            return new Result<>().success(200, "获取收藏夹id成功").put(result);
+        }else {
+            return new Result<>().error("获取收藏夹id失败");
+        }
+    }
+
+    @Override
+    public Result<?> addNewStarFolder(String userId, String folderName, String summary, Integer isVisible) {
+        String uuid = UUID.randomUUID().toString();
+        int result = detailsMapper.addNewStarFolder(uuid, userId, folderName, summary, isVisible);
+        if(result != 0){
+            return new Result<>().success(200, "添加收藏夹成功");
+        }else {
+            return new Result<>().error("添加收藏夹失败");
+        }
+    }
 }

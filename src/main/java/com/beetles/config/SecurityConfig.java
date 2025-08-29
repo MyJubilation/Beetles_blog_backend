@@ -52,12 +52,16 @@ public class SecurityConfig {
             // 配置请求授权规则
             .authorizeHttpRequests(authorize -> authorize
                     // 允许匿名访问登录接口
-                    .requestMatchers("/login").anonymous()
+                    .requestMatchers("/login","/imgUpload").anonymous()
                     // 允许匿名访问接口
                     // 主页相关api
-                    .requestMatchers("/getDetailsInfoList","/getTags").permitAll()
-                    // 浏览历史相关api
-//                    .requestMatchers("/getHistory").permitAll()
+                    .requestMatchers("/getDetailsInfoList","/getTags","/selectDetailsList").permitAll()
+                    // 用户相关api
+                    .requestMatchers("/getUserDetailsInfoList").permitAll()
+                    // AI对话相关api
+//                    .requestMatchers("/AIchat").permitAll()
+                    // 文章页面相关
+                    .requestMatchers("/getUserShortInfo").permitAll()
                     // 创作相关api
                     .requestMatchers("/getStatusList").permitAll()
                     // 评论功能

@@ -22,11 +22,25 @@ public interface DetailsService {
 
     Result<?> checkIslikeANDIsStar(String detailsId, String userId);
 
-    Result<?> starDetail(String detailsId, String userId);
+    Result<?> starDetail(String detailsId, String userId, String folderId);
 
     Result<?> getTags();
 
     Result<?> getStatusList();
 
     Result<?> getTagsList();
+
+    Result<?> selectDetailsList(int currentPage, int pageSize, String userId, String input, String timeNaviType);
+
+    Result<?> getFollowedDetailsInfoList(int currentPageNum, String userId);
+
+    Result<?> getStarFolderContents(String userId, String folderId, int pageSize, int currentPage);
+
+    Result<?> getStarFolderList(String userId);
+
+    Result<?> changeStarFolderInfo(String folderId, String type, String value);
+
+    Result<?> getFolderId(String userId, String detailsId);
+
+    Result<?> addNewStarFolder(String userId, String folderName, String summary, Integer isVisible);
 }

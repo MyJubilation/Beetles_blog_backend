@@ -35,7 +35,10 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
                 requestURI.equals("/getCommentsDanmakus") ||
                 requestURI.equals("/register") ||
                 requestURI.equals("/getDetailsContent") ||
-//                requestURI.equals("/getHistory") ||
+                requestURI.equals("/selectDetailsList") ||
+                requestURI.equals("/imgUpload") ||
+                requestURI.equals("/getUserShortInfo") ||
+                requestURI.equals("/getUserDetailsInfoList") ||
                 requestURI.equals("/getStatusList") ||
                 requestURI.equals("/getTags") ||
                 requestURI.equals("/webSocket")) {

@@ -5,5 +5,14 @@ spring:
     url: jdbc:mysql://localhost:3306/beetles_blogs_db?characterEncoding=utf-8&serverTimezone=Asia/Shanghai
     username: root
     password: 123456
+  servlet:
+    multipart:
+      # 设置单个文件最大大小
+      max-file-size: 10MB
+      # 设置总上传数据大小
+      max-request-size: 10MB
 server:
   port: 8090
+deepseek:
+  api:
+    key: sk-beec5ac9345c47288e2932cffa716758

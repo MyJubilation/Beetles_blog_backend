@@ -30,11 +30,11 @@ public interface DetailsMapper {
 
     int addLikeDetail(String detailsId, String userId, String id);
 
-    int selectStarDetail(String detailsId, String userId);
+    String selectStarDetail(String detailsId, String userId);
 
     int deleteStarDetail(String detailsId, String userId);
 
-    int addStarDetail(String detailsId, String userId, String id);
+    int addStarDetail(String detailsId, String userId, String id, String folderId);
 
     int changeLikeInArticle(String detailsId, int i);
 
@@ -49,4 +49,24 @@ public interface DetailsMapper {
     List<Map<String, Object>> getTagsFromTagContent();
 
     List<Map<String, Object>> getTags();
+
+    List<Map<String, Object>> selectDetailsList(int start, int pageSize, String userId, String input, String timeNaviType);
+
+    Object selectDetailsListTotal(String userId, String input);
+
+    List<Map<String, Object>> getFollowedDetailsInfoList(int currentPageNum, String userId);
+
+    List<Map<String, Object>> getStarFolderContents(String userId, String folderId, int pageSize, int start);
+
+    List<Map<String, Object>> getStarFolderList(String userId);
+
+    Map<String, Object> getStarFolderInfo(String folderId);
+
+    int changeStarFolderInfo(String folderId, String type, String value);
+
+    String selectFolderIdByUserId(String userId);
+
+    String getFolderId(String userId, String detailsId);
+
+    int addNewStarFolder(String uuid, String userId, String folderName, String summary, Integer isVisible);
 }

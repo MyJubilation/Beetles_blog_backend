@@ -27,6 +27,26 @@
         #{userType}, #{createTime}, #{updateTime}, #{delFlag}
         )
     </insert>
+    <insert id="addUserFollows">
+        INSERT INTO sys_user_follows(id, user_id, follower_id)
+        VALUES (#{id}, #{userId}, #{followerId})
+    </insert>
+    <update id="changeUserInfo">
+        UPDATE sys_user
+        SET
+            <if test='type == "userNickname"'>nick_name = #{value},</if>
+            <if test='type == "sex"'>sex = #{value},</if>
+            <if test='type == "bio"'>bio = #{value},</if>
+            <if test='type == "avatar"'>avatar = #{value},</if>
+            <if test='type == "email"'>email = #{value},</if>
+            <if test='type == "phonenumber"'>phonenumber = #{value},</if>
+            id = id  -- 防止所有条件都不满足时的语法错误
+        WHERE id = #{userId}
+    </update>
+    <delete id="removeUserFollows">
+        DELETE FROM sys_user_follows
+        WHERE user_id = #{userId} AND follower_id = #{followerId}
+    </delete>
 
     <select id="getNickName" resultType="java.lang.Boolean">
         SELECT COUNT(*)
@@ -42,5 +62,86 @@
         SELECT COUNT(*)
         FROM sys_user
         WHERE user_name = #{userName}
+    </select>
+    <select id="getUserDetailsInfoList" resultType="java.util.Map">
+        SELECT a.id, a.title, a.cover_image AS coverImg, a.summary, a.type, a.visibility,
+        a.view_count AS views, (SELECT COUNT(*) FROM comment WHERE article_id = a.id) AS comments, a.like_count AS likes, a.star_count AS stars, a.create_time AS createTime, a.update_time AS updateTime
+        FROM article a join sys_user u ON a.user_id = u.id
+        WHERE a.user_id = #{authorId}
+        ORDER BY a.id DESC
+    </select>
+    <select id="getUserShortInfo" resultType="java.util.Map">
+        SELECT
+            u.id AS userId,
+            u.avatar AS avatar,
+            u.nick_name AS userNickname,
+
+            CASE
+                WHEN SUM(a.view_count) >= 1000000 THEN CONCAT(ROUND(SUM(a.view_count)/1000000, 1), 'M')
+                WHEN SUM(a.view_count) >= 1000 THEN CONCAT(ROUND(SUM(a.view_count)/1000, 1), 'k')
+                ELSE CAST(SUM(a.view_count) AS CHAR)
+                END AS views,
+
+            CASE
+                WHEN SUM(a.type_count) >= 1000000 THEN CONCAT(ROUND(SUM(a.type_count)/1000000, 1), 'M')
+                WHEN SUM(a.type_count) >= 1000 THEN CONCAT(ROUND(SUM(a.type_count)/1000, 1), 'k')
+                ELSE CAST(SUM(a.type_count) AS CHAR)
+                END AS type,
+
+            CASE
+                WHEN SUM(a.like_count) >= 1000000 THEN CONCAT(ROUND(SUM(a.like_count)/1000000, 1), 'M')
+                WHEN SUM(a.like_count) >= 1000 THEN CONCAT(ROUND(SUM(a.like_count)/1000, 1), 'k')
+                ELSE CAST(SUM(a.like_count) AS CHAR)
+                END AS likes,
+
+            CASE
+                WHEN SUM(a.star_count) >= 1000000 THEN CONCAT(ROUND(SUM(a.star_count)/1000000, 1), 'M')
+                WHEN SUM(a.star_count) >= 1000 THEN CONCAT(ROUND(SUM(a.star_count)/1000, 1), 'k')
+                ELSE CAST(SUM(a.star_count) AS CHAR)
+                END AS stars,
+
+            CASE
+                WHEN SUM(a.comment_count) >= 1000000 THEN CONCAT(ROUND(SUM(a.comment_count)/1000000, 1), 'M')
+                WHEN SUM(a.comment_count) >= 1000 THEN CONCAT(ROUND(SUM(a.comment_count)/1000, 1), 'k')
+                ELSE CAST(SUM(a.comment_count) AS CHAR)
+                END AS comments,
+
+            CASE
+                WHEN (SELECT COUNT(*) FROM sys_user_follows WHERE user_id = #{userId}) >= 1000000 THEN CONCAT(ROUND((SELECT COUNT(*) FROM sys_user_follows WHERE user_id = #{userId})/1000000, 1), 'M')
+                WHEN (SELECT COUNT(*) FROM sys_user_follows WHERE user_id = #{userId}) >= 1000 THEN CONCAT(ROUND((SELECT COUNT(*) FROM sys_user_follows WHERE user_id = #{userId})/1000, 1), 'k')
+                ELSE CAST((SELECT COUNT(*) FROM sys_user_follows WHERE user_id = #{userId}) AS CHAR)
+                END AS fans,
+
+            CASE
+                WHEN (SELECT COUNT(*) FROM sys_user_follows WHERE follower_id = #{userId}) >= 1000000 THEN CONCAT(ROUND((SELECT COUNT(*) FROM sys_user_follows WHERE follower_id = #{userId})/1000000, 1), 'M')
+                WHEN (SELECT COUNT(*) FROM sys_user_follows WHERE follower_id = #{userId}) >= 1000 THEN CONCAT(ROUND((SELECT COUNT(*) FROM sys_user_follows WHERE follower_id = #{userId})/1000, 1), 'k')
+                ELSE CAST((SELECT COUNT(*) FROM sys_user_follows WHERE follower_id = #{userId}) AS CHAR)
+                END AS follows,
+
+            DATE_FORMAT(u.create_time, '%Y.%m.%d') AS createTime
+        FROM (
+                 SELECT
+                     a.id,
+                     a.user_id,
+                     a.view_count,
+                     SUM(CASE WHEN a.type = 1 THEN 1 ELSE 0 END) AS type_count,
+                     COUNT(DISTINCT a_l.id) AS like_count,
+                     COUNT(DISTINCT a_s.id) AS star_count,
+                     COUNT(DISTINCT c.id) AS comment_count
+                 FROM article a
+                          LEFT JOIN article_likes a_l ON a.id = a_l.article_id
+                          LEFT JOIN article_stars a_s ON a.id = a_s.article_id
+                          LEFT JOIN comment c ON a.id = c.article_id
+                 WHERE a.user_id = #{userId}
+                 GROUP BY a.id, a.user_id, a.view_count
+             ) a
+                 LEFT JOIN sys_user u ON u.id = a.user_id
+        GROUP BY u.id, u.avatar, u.nick_name, u.create_time
+    </select>
+    <select id="getUserInfoById" resultType="java.util.Map">
+        SELECT id AS userId, user_name AS userName, nick_name AS userNickname,  bio AS bio, status AS status, email AS email, phonenumber AS phonenumber, sex AS sex, avatar AS avatar,
+               DATE_FORMAT(create_time, '%Y-%m-%d %H:%i:%s') AS createTime, DATE_FORMAT(update_time, '%Y-%m-%d %H:%i:%s') AS updateTime
+        FROM sys_user
+        WHERE id = #{userId}
     </select>
 </mapper>

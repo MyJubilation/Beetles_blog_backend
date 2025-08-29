@@ -23,8 +23,16 @@
         VALUES (#{detailsId}, #{userId}, #{id})
     </insert>
     <insert id="addStarDetail">
-        INSERT INTO article_stars(article_id, user_id, id)
-        VALUES (#{detailsId}, #{userId}, #{id})
+        INSERT INTO article_stars(article_id, user_id, id, folder_id)
+        VALUES (#{detailsId}, #{userId}, #{id}, #{folderId})
+    </insert>
+    <insert id="addNewStarFolder">
+        INSERT INTO article_stars_folder(id, folder_name,
+                                        <if test='summary != null'>summary,</if>
+                                        isVisible, user_id)
+        VALUES (#{uuid}, #{folderName},
+                <if test='summary != null'>#{summary},</if>
+                #{isVisible}, #{userId})
     </insert>
     <update id="addDetailsView">
         UPDATE article
@@ -41,6 +49,11 @@
         SET star_count = star_count + #{i}
         WHERE id = #{detailsId}
     </update>
+    <update id="changeStarFolderInfo">
+        UPDATE article_stars_folder
+        <if test="type == 'folderName'">SET folder_name = #{value} WHERE id = #{folderId}</if>
+        <if test="type == 'folderSummary'">SET summary = #{value} WHERE id = #{folderId}</if>
+    </update>
     <delete id="deleteLikeDetail">
         DELETE FROM article_likes
         WHERE article_id = #{detailsId} AND user_id = #{userId}
@@ -50,8 +63,13 @@
         WHERE article_id = #{detailsId} AND user_id = #{userId}
     </delete>
     <select id="getDetailsInfoList" resultType="java.util.Map">
-        SELECT a.id, a.title, a.cover_image AS coverImg, a.summary, a.type, a.visibility, u.nick_name AS author, u.avatar,
-               a.user_id AS authorId, a.view_count AS views, a.like_count AS likes, a.star_count AS stars, a.create_time AS createTime, a.update_time AS updateTime
+        SELECT a.id, a.title, a.cover_image AS coverImg, a.summary, a.type, a.visibility, u.nick_name AS author, u.avatar,a.user_id AS authorId,
+                CASE
+                WHEN a.view_count >= 1000000 THEN CONCAT(ROUND(a.view_count/1000000, 1), 'M')
+                WHEN a.view_count >= 1000 THEN CONCAT(ROUND(a.view_count/1000, 1), 'k')
+                ELSE CAST(a.view_count AS CHAR)
+                END AS views,
+               a.like_count AS likes, a.star_count AS stars, a.create_time AS createTime, a.update_time AS updateTime
         FROM article a join sys_user u ON a.user_id = u.id <if test="type != null">JOIN tag t</if>
         WHERE (a.visibility = 1
             <if test='userId != null'>OR (a.visibility = 2 AND a.user_id = #{userId})</if>)
@@ -61,7 +79,7 @@
         LIMIT #{pageSize} OFFSET #{start}
     </select>
     <select id="getDetailsContent" resultType="java.util.Map">
-        SELECT a.id,a.title, a.summary, a.content, a.view_count, a.like_count AS likes, a.star_count AS stars,
+        SELECT a.id, a.user_id, a.title, a.summary, a.content, a.view_count, a.like_count AS likes, a.star_count AS stars,
                 DATE_FORMAT(a.create_time, '%Y-%m-%d %H:%i:%s') AS createTime,
                 DATE_FORMAT(a.update_time, '%Y-%m-%d %H:%i:%s') AS updateTime,
                 u.nick_name AS author, u.avatar
@@ -94,8 +112,8 @@
         FROM article_likes
         WHERE article_id = #{detailsId} AND user_id = #{userId}
     </select>
-    <select id="selectStarDetail" resultType="java.lang.Integer">
-        SELECT count(*)
+    <select id="selectStarDetail" resultType="java.lang.String">
+        SELECT folder_id
         FROM article_stars
         WHERE article_id = #{detailsId} AND user_id = #{userId}
     </select>
@@ -115,5 +133,108 @@
     <select id="getTags" resultType="java.util.Map">
         SELECT name,title,id
         FROM tag
+    </select>
+    <select id="selectDetailsList" resultType="java.util.Map">
+        SELECT a.id, a.title, a.cover_image AS coverImg, a.summary, a.type, a.visibility,
+        u.nick_name AS author, u.avatar, a.user_id AS authorId,
+
+        CASE
+        WHEN a.view_count >= 1000000 THEN CONCAT(ROUND(a.view_count/1000000, 1), 'M')
+        WHEN a.view_count >= 1000 THEN CONCAT(ROUND(a.view_count/1000, 1), 'k')
+        ELSE CAST(a.view_count AS CHAR)
+        END AS views,
+
+        a.like_count AS likes, a.star_count AS stars,
+        DATE_FORMAT(a.create_time, '%Y-%m-%d') AS createTime, DATE_FORMAT(a.update_time, '%Y-%m-%d') AS updateTime
+        FROM article a
+        JOIN sys_user u ON a.user_id = u.id
+        WHERE (a.visibility = 1
+        <if test='userId != null'>OR (a.visibility = 2 AND a.user_id = #{userId})</if>)
+        <if test='input != null'>AND (title LIKE CONCAT('%', #{input}, '%')
+            OR content LIKE CONCAT('%', #{input}, '%')
+            OR summary LIKE CONCAT('%', #{input}, '%'))</if>
+
+        <if test='timeNaviType == "默认"'>ORDER BY a.id DESC</if>
+        <if test='timeNaviType == "最新"'>ORDER BY a.create_time DESC</if>
+        LIMIT #{pageSize} OFFSET #{start}
+    </select>
+    <select id="selectDetailsListTotal" resultType="java.lang.Object">
+        SELECT COUNT(*)
+        FROM article a
+        JOIN sys_user u ON a.user_id = u.id
+        WHERE (a.visibility = 1
+        <if test='userId != null'>OR (a.visibility = 2 AND a.user_id = #{userId})</if>)
+        <if test='input != null'>AND (title LIKE CONCAT('%', #{input}, '%')
+            OR content LIKE CONCAT('%', #{input}, '%')
+            OR summary LIKE CONCAT('%', #{input}, '%'))</if>
+    </select>
+    <select id="getFollowedDetailsInfoList" resultType="java.util.Map">
+        SELECT a.id, a.title, a.cover_image AS coverImg, a.summary, a.type, a.visibility, u.nick_name AS author, u.avatar,a.user_id AS authorId,
+               CASE
+                   WHEN a.view_count >= 1000000 THEN CONCAT(ROUND(a.view_count/1000000, 1), 'M')
+                   WHEN a.view_count >= 1000 THEN CONCAT(ROUND(a.view_count/1000, 1), 'k')
+                   ELSE CAST(a.view_count AS CHAR)
+                   END AS views,
+               a.like_count AS likes, a.star_count AS stars, a.create_time AS createTime, a.update_time AS updateTime
+
+        FROM article a join sys_user u ON a.user_id = u.id
+                       JOIN sys_user_follows AS uf ON uf.user_id = #{userId}
+        WHERE (a.visibility = 1
+            OR (a.visibility = 2 AND a.user_id = #{userId})
+            OR (a.visibility = 3 AND a.user_id = uf.follower_id))
+          AND uf.follower_id = a.user_id
+
+        ORDER BY a.id DESC
+        LIMIT 9 OFFSET #{currentPageNum}
+    </select>
+    <select id="getStarFolderContents" resultType="java.util.Map">
+        SELECT
+            a_s.id AS id, a_s.article_id AS articleId, a_s_f.folder_name AS folderName,
+            a.title AS title
+        FROM
+            article_stars a_s JOIN article_stars_folder a_s_f ON a_s.folder_id = a_s_f.id
+                              JOIN article a ON a_s.article_id = a.id
+        WHERE
+            a_s.user_id = #{userId}
+          AND a_s.folder_id = #{folderId}
+            LIMIT #{pageSize} OFFSET #{start}
+    </select>
+    <select id="getStarFolderList" resultType="java.util.Map">
+        SELECT
+            a_s_f.id AS id,
+            a_s_f.folder_name AS folderName,
+            (SELECT COUNT(*) FROM article_stars a_s WHERE a_s.folder_id = a_s_f.id) AS contentCount
+        FROM
+            article_stars_folder a_s_f
+        WHERE
+            user_id = #{userId}
+    </select>
+    <select id="getStarFolderInfo" resultType="java.util.Map">
+        SELECT
+            a_s_f.id AS id,
+            a_s_f.folder_name AS folderName,
+            a_s_f.summary AS summary
+        FROM
+            article_stars_folder a_s_f
+        WHERE
+            a_s_f.id = #{folderId}
+    </select>
+    <select id="selectFolderIdByUserId" resultType="java.lang.String">
+        SELECT
+            id
+        FROM
+            article_stars_folder
+        WHERE
+            user_id = #{userId}
+            AND folder_name = '默认收藏夹'
+    </select>
+    <select id="getFolderId" resultType="java.lang.String">
+        SELECT
+            folder_id
+        FROM
+            article_stars
+        WHERE
+            user_id = #{userId}
+            AND article_id = #{detailsId}
     </select>
 </mapper>
